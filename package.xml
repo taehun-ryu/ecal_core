@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ecal_core</name>
+  <version>0.0.1</version>
+  <description>Core algorithms for event-camera calibration (IWE/pIWE, CM tracking, patch extraction, visualization utilities).</description>
+
+  <maintainer email="xogns2079@gmail.com">TODO</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Core should NOT depend on ROS2 runtime libs -->
+  <depend>opencv</depend>
+  <depend>ceres-solver</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
