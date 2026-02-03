@@ -20,6 +20,7 @@ add_library(ecal_core
   src/core/iwe_gaussian.cpp
   src/core/cm_velocity_2d.cpp
   src/core/cm_tracker_2d.cpp
+  src/core/patch_extractor.cpp
   src/viz/event_render.cpp
 )
 
