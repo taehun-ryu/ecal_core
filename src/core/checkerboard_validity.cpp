@@ -522,32 +522,6 @@ std::vector<cv::Point3f> buildObjectPoints(int rows, int cols,
   return obj;
 }
 
-cv::Mat overlayCornerIndices(const cv::Mat &vis_bgr,
-                             const std::vector<cv::Point2f> &ordered,
-                             int start_index) {
-  cv::Mat vis;
-  if (vis_bgr.channels() == 1) {
-    cv::cvtColor(vis_bgr, vis, cv::COLOR_GRAY2BGR);
-  } else {
-    vis = vis_bgr.clone();
-  }
-  const int H = vis.rows;
-  const int W = vis.cols;
-  const int base = std::max(1, static_cast<int>(std::round(0.0015 * (H + W))));
-  const double font_scale = std::max(0.4, 0.0009 * (H + W));
-  const int thickness = std::max(1, base);
-  for (size_t k = 0; k < ordered.size(); ++k) {
-    const cv::Point p(static_cast<int>(std::round(ordered[k].x)),
-                      static_cast<int>(std::round(ordered[k].y)));
-    const std::string label = std::to_string(start_index + static_cast<int>(k));
-    cv::putText(vis, label, p, cv::FONT_HERSHEY_SIMPLEX, font_scale,
-                cv::Scalar(0, 0, 0), thickness + 1, cv::LINE_AA);
-    cv::putText(vis, label, p, cv::FONT_HERSHEY_SIMPLEX, font_scale,
-                cv::Scalar(255, 255, 255), thickness, cv::LINE_AA);
-  }
-  return vis;
-}
-
 cv::Mat drawCheckerboardRowSnake(const cv::Mat &gray_or_bgr,
                                  const std::vector<cv::Point2f> &ordered,
                                  int rows, int cols, int radius,

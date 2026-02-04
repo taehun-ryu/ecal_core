@@ -34,6 +34,11 @@ struct CalibrationConfig {
 
   // cm iwe
   bool use_variance = true; // true=L2(variance), false=IWE
+
+  // calibration
+  int calib_max_iter = 50;
+  bool calib_fix_k3plus = true;
+  bool calib_use_intrinsic_guess = true;
 };
 
 bool loadCalibrationConfig(const std::string &path, CalibrationConfig &cfg,

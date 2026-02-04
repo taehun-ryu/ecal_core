@@ -23,10 +23,6 @@ bool isCheckerboardValid(const std::vector<cv::Point2f> &ordered, int rows,
 std::vector<cv::Point3f> buildObjectPoints(int rows, int cols,
                                            float square_size);
 
-cv::Mat overlayCornerIndices(const cv::Mat &vis_bgr,
-                             const std::vector<cv::Point2f> &ordered,
-                             int start_index = 0);
-
 cv::Mat drawCheckerboardRowSnake(const cv::Mat &gray_or_bgr,
                                  const std::vector<cv::Point2f> &ordered,
                                  int rows, int cols, int radius = 3,

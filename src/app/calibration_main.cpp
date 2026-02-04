@@ -1,6 +1,4 @@
 #include <algorithm>
-#include <chrono>
-#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <limits>
@@ -130,8 +128,6 @@ int main(int argc, char **argv) {
     }
 
     if (!window.empty()) {
-      const auto t0 = std::chrono::steady_clock::now();
-
       // Convert to SimpleEvent (seconds relative to window start)
       const uint64_t win_t0_us = window.front().t_ns / 1000ULL;
       std::vector<ecal::core::SimpleEvent> frame_events;
@@ -148,8 +144,6 @@ int main(int argc, char **argv) {
       }
 
       const auto res = tracker.track(frame_events, track_opt, vx, vy);
-      const auto t1 = std::chrono::steady_clock::now();
-      (void)std::chrono::duration<double>(t1 - t0).count();
 
       vx = res.vx;
       vy = res.vy;
@@ -157,14 +151,12 @@ int main(int argc, char **argv) {
       // Debug stats: dt range, polarity ratio
       uint64_t min_dt = std::numeric_limits<uint64_t>::max();
       uint64_t max_dt = 0;
-      uint64_t sum_dt = 0;
       size_t pos_cnt = 0;
       const uint64_t t0_ns = static_cast<uint64_t>(window.front().t_ns);
       for (const auto &ev : window) {
         const uint64_t dt = static_cast<uint64_t>(ev.t_ns) - t0_ns;
         min_dt = std::min(min_dt, dt);
         max_dt = std::max(max_dt, dt);
-        sum_dt += dt;
         if (ev.polarity) {
           pos_cnt++;
         }
