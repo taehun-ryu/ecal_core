@@ -13,7 +13,10 @@ void saveCalibrationOutputs(const std::string &out_dir, size_t window_idx,
 
 void saveCalibrationYaml(const std::string &out_dir, size_t used_windows,
                          size_t total_windows, int board_rows, int board_cols,
-                         float square_size, const cv::Mat &K,
-                         const cv::Mat &dist, double reproj_error);
+                         float square_size, int calib_B, int calib_R,
+                         size_t used_runs, const cv::Mat &K_mean,
+                         const cv::Mat &K_std, const cv::Mat &dist_mean,
+                         const cv::Mat &dist_std, double reproj_mean,
+                         double reproj_std);
 
 } // namespace ecal::io

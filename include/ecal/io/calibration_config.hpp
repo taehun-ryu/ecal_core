@@ -39,6 +39,8 @@ struct CalibrationConfig {
   int calib_max_iter = 50;
   bool calib_fix_k3plus = true;
   bool calib_use_intrinsic_guess = true;
+  int calib_B = 50;   // number of views per calibration run
+  int calib_R = 5;    // number of bootstrap runs
 };
 
 bool loadCalibrationConfig(const std::string &path, CalibrationConfig &cfg,

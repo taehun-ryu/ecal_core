@@ -267,11 +267,18 @@ int main(int argc, char **argv) {
                 << " refined=" << refined_corners.size()
                 << " valid=" << (filtered_valid ? "yes" : "no") << "\n";
 
+      const double window_dt_s =
+          window.size() > 1
+              ? (static_cast<double>(window.back().t_ns - window.front().t_ns) *
+                 1e-9)
+              : 0.0;
+
       // Visualization
       const auto vis = ecal::viz::buildWindowVis(
           window, cfg.width, cfg.height, res.iwe, res.piwe, patch_points, boxes,
-          init_corners, refined_corners, filtered_corners, board_rows,
-          board_cols, cfg.viz_zoom);
+          init_corners, refined_corners, filtered_corners, static_cast<float>(vx),
+          static_cast<float>(vy), window_dt_s, board_rows, board_cols,
+          cfg.viz_zoom);
       ecal::viz::showWindowVis(vis);
       ecal::io::saveCalibrationOutputs(cfg.out_dir, window_idx, vis);
 
@@ -294,20 +301,46 @@ int main(int argc, char **argv) {
     std::cout << "[calib] Calibrating with " << used_windows << "/"
               << total_windows << " windows...\n";
     const cv::Size image_size(cfg.width, cfg.height);
-    const auto calib =
-        ecal::core::calibrateCheckerboard(objpoints, imgpoints, image_size);
-    if (calib.success) {
-      std::cout << "[calib] success\n";
-      std::cout << "[calib] reproj_err=" << calib.reprojection_error << "\n";
-      std::cout << "[calib] K=\n" << calib.camera_matrix << "\n";
-      std::cout << "[calib] dist=\n" << calib.dist_coeffs << "\n";
-      ecal::io::saveCalibrationYaml(cfg.out_dir, used_windows, total_windows,
-                                    board_rows, board_cols, cfg.square_size,
-                                    calib.camera_matrix, calib.dist_coeffs,
-                                    calib.reprojection_error);
-      ecal::viz::saveCalibrationReportImages(
-          cfg.out_dir, image_size, calib.camera_matrix, calib.dist_coeffs,
-          calib.rvecs, calib.tvecs, objpoints, imgpoints);
+    ecal::core::CalibrationOptions calib_opt;
+    calib_opt.max_iter = cfg.calib_max_iter;
+    calib_opt.fix_k3plus = cfg.calib_fix_k3plus;
+    calib_opt.use_intrinsic_guess = cfg.calib_use_intrinsic_guess;
+    std::cout << "[calib] bootstrap B=" << cfg.calib_B
+              << " R=" << cfg.calib_R << "\n";
+    const auto boot = ecal::core::calibrateCheckerboardBootstrap(
+        objpoints, imgpoints, image_size, calib_opt, cfg.calib_B, cfg.calib_R);
+    if (boot.success) {
+      std::cout << "[calib] success runs=" << boot.used_runs << "\n";
+      std::cout << "[calib] reproj_mean=" << boot.reproj_mean
+                << " std=" << boot.reproj_std << "\n";
+      ecal::io::saveCalibrationYaml(
+          cfg.out_dir, used_windows, total_windows, board_rows, board_cols,
+          cfg.square_size, cfg.calib_B, cfg.calib_R, boot.used_runs,
+          boot.K_mean, boot.K_std, boot.dist_mean, boot.dist_std,
+          boot.reproj_mean, boot.reproj_std);
+      if (boot.best.success) {
+        std::vector<std::vector<cv::Point3f>> best_obj;
+        std::vector<std::vector<cv::Point2f>> best_img;
+        if (!boot.best_indices.empty()) {
+          best_obj.reserve(boot.best_indices.size());
+          best_img.reserve(boot.best_indices.size());
+          for (int idx : boot.best_indices) {
+            if (idx < 0 ||
+                static_cast<size_t>(idx) >= objpoints.size()) {
+              continue;
+            }
+            best_obj.push_back(objpoints[static_cast<size_t>(idx)]);
+            best_img.push_back(imgpoints[static_cast<size_t>(idx)]);
+          }
+        } else {
+          best_obj = objpoints;
+          best_img = imgpoints;
+        }
+        ecal::viz::saveCalibrationReportImages(
+            cfg.out_dir, image_size, boot.best.camera_matrix,
+            boot.best.dist_coeffs, boot.best.rvecs, boot.best.tvecs, best_obj,
+            best_img);
+      }
     } else {
       std::cout << "[calib] failed\n";
     }

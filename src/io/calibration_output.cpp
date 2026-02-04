@@ -83,8 +83,11 @@ static void writeMatYaml(std::ofstream &ofs, const std::string &key,
 
 void saveCalibrationYaml(const std::string &out_dir, size_t used_windows,
                          size_t total_windows, int board_rows, int board_cols,
-                         float square_size, const cv::Mat &K,
-                         const cv::Mat &dist, double reproj_error) {
+                         float square_size, int calib_B, int calib_R,
+                         size_t used_runs, const cv::Mat &K_mean,
+                         const cv::Mat &K_std, const cv::Mat &dist_mean,
+                         const cv::Mat &dist_std, double reproj_mean,
+                         double reproj_std) {
   if (out_dir.empty()) {
     return;
   }
@@ -101,22 +104,34 @@ void saveCalibrationYaml(const std::string &out_dir, size_t used_windows,
   ofs << "  rows: " << board_rows << "\n";
   ofs << "  cols: " << board_cols << "\n";
   ofs << "  square_size: " << square_size << "\n";
-  ofs << "reprojection_error: " << reproj_error << "\n";
+  ofs << "bootstrap:\n";
+  ofs << "  B: " << calib_B << "\n";
+  ofs << "  R: " << calib_R << "\n";
+  ofs << "  used_runs: " << used_runs << "\n";
+  ofs << "reprojection_error_mean: " << reproj_mean << "\n";
+  ofs << "reprojection_error_std: " << reproj_std << "\n";
 
-  cv::Mat Kd, distd;
-  K.convertTo(Kd, CV_64F);
-  dist.convertTo(distd, CV_64F);
-  writeMatYaml(ofs, "camera_matrix", Kd);
+  cv::Mat Kd_mean, Kd_std, distd_mean, distd_std;
+  K_mean.convertTo(Kd_mean, CV_64F);
+  K_std.convertTo(Kd_std, CV_64F);
+  dist_mean.convertTo(distd_mean, CV_64F);
+  dist_std.convertTo(distd_std, CV_64F);
+  writeMatYaml(ofs, "camera_matrix_mean", Kd_mean);
+  writeMatYaml(ofs, "camera_matrix_std", Kd_std);
 
-  ofs << "dist_coeffs: [";
-  if (!distd.empty()) {
-    for (int i = 0; i < distd.total(); ++i) {
-      ofs << distd.at<double>(static_cast<int>(i));
-      if (i + 1 < distd.total())
-        ofs << ", ";
+  auto writeVec = [&](const std::string &key, const cv::Mat &m) {
+    ofs << key << ": [";
+    if (!m.empty()) {
+      for (int i = 0; i < m.total(); ++i) {
+        ofs << m.at<double>(static_cast<int>(i));
+        if (i + 1 < m.total())
+          ofs << ", ";
+      }
     }
-  }
-  ofs << "]\n";
+    ofs << "]\n";
+  };
+  writeVec("dist_coeffs_mean", distd_mean);
+  writeVec("dist_coeffs_std", distd_std);
 }
 
 } // namespace ecal::io

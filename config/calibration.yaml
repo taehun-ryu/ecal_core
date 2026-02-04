@@ -34,3 +34,14 @@ pp_radius: 5
 
 # cm (true=L2/variance, false=IWE)
 use_variance: true
+
+# calibration speed/robustness
+# bootstrap:
+# - If total valid views M <= calib_B, we skip bootstrap and run once.
+# - If calib_R <= 1, we also run once.
+# - Otherwise, sample calib_B views and repeat calib_R runs; report mean±std.
+calib_max_iter: 50
+calib_fix_k3plus: true
+calib_use_intrinsic_guess: true
+calib_B: 32
+calib_R: 50

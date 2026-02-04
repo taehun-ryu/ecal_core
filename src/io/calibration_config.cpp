@@ -85,6 +85,15 @@ bool loadCalibrationConfig(const std::string &path, CalibrationConfig &cfg,
     cfg.pp_radius = std::stoi(get("pp_radius"));
   if (has("use_variance"))
     cfg.use_variance = (get("use_variance") == "true");
+  if (has("calib_max_iter"))
+    cfg.calib_max_iter = std::stoi(get("calib_max_iter"));
+  if (has("calib_fix_k3plus"))
+    cfg.calib_fix_k3plus = (get("calib_fix_k3plus") == "true");
+  if (has("calib_use_intrinsic_guess"))
+    cfg.calib_use_intrinsic_guess =
+        (get("calib_use_intrinsic_guess") == "true");
+  if (has("calib_B")) cfg.calib_B = std::stoi(get("calib_B"));
+  if (has("calib_R")) cfg.calib_R = std::stoi(get("calib_R"));
 
   if (cfg.h5_path.empty()) {
     if (err)
