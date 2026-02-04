@@ -1,6 +1,8 @@
 #include "ecal/viz/calibration_viz.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <string>
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -63,10 +65,30 @@ WindowVis buildWindowVis(const std::vector<ecal::core::TimedEventNs> &events,
                          const std::vector<cv::Point2f> &init_corners,
                          const std::vector<cv::Point2f> &refined_corners,
                          const std::vector<cv::Point2f> &filtered_corners,
+                         float vx, float vy, double window_dt_s,
                          int board_rows, int board_cols, int zoom_factor) {
   WindowVis out;
 
   out.raw_vis = ecal::viz::eventsToImage(events, width, height, 2, true, 50);
+
+  if (!out.raw_vis.empty()) {
+    const int raw_zoom = 2;
+    const cv::Point center(out.raw_vis.cols / 2, out.raw_vis.rows / 2);
+    const double dx = static_cast<double>(vx) * window_dt_s * raw_zoom;
+    const double dy = static_cast<double>(vy) * window_dt_s * raw_zoom;
+    const double norm = std::sqrt(dx * dx + dy * dy);
+    if (std::isfinite(norm) && norm > 1e-6) {
+      const cv::Point tip(static_cast<int>(std::round(center.x + dx)),
+                          static_cast<int>(std::round(center.y + dy)));
+      cv::arrowedLine(out.raw_vis, center, tip, cv::Scalar(0, 255, 0), 2,
+                      cv::LINE_AA, 0, 0.25);
+      const std::string label =
+          "v=(" + std::to_string(vx) + "," + std::to_string(vy) + ") px/s";
+      cv::putText(out.raw_vis, label, cv::Point(10, 20),
+                  cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
+                  cv::LINE_AA);
+    }
+  }
 
   if (iwe.empty() || piwe.empty()) {
     return out;
