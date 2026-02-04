@@ -1,4 +1,4 @@
-#include "ecal_core/core/cm_tracker_2d.hpp"
+#include "ecal/core/cm_tracker_2d.hpp"
 
 #include <cmath>
 #include <stdexcept>
@@ -8,9 +8,9 @@
 #include <ceres/ceres.h>
 #include <opencv2/core.hpp>
 
-#include "ecal_core/core/cm_velocity_2d.hpp"
-#include "ecal_core/core/iwe_gaussian.hpp"
-#include "ecal_core/core/simple_event.hpp"
+#include "ecal/core/cm_velocity_2d.hpp"
+#include "ecal/core/iwe_gaussian.hpp"
+#include "ecal/core/simple_event.hpp"
 
 namespace ecal::core {
 

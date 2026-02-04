@@ -1,4 +1,4 @@
-#include "ecal_core/core/iwe_gaussian.hpp"
+#include "ecal/core/iwe_gaussian.hpp"
 
 #include <algorithm>
 #include <cmath>

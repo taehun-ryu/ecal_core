@@ -5,8 +5,8 @@
 
 #include <opencv2/core.hpp>
 
-#include "ecal_core/core/cm_velocity_2d.hpp"
-#include "ecal_core/core/simple_event.hpp"
+#include "ecal/core/cm_velocity_2d.hpp"
+#include "ecal/core/simple_event.hpp"
 
 namespace ecal::core {
 

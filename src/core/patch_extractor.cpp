@@ -1,4 +1,4 @@
-#include "ecal_core/core/patch_extractor.hpp"
+#include "ecal/core/patch_extractor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -42,6 +42,15 @@ PatchExtractor::PatchExtractor(PatchPointsOptions pp_opt,
   if (circle_offsets_.empty()) {
     throw std::runtime_error("PatchExtractor: circle perimeter offsets empty");
   }
+  circle_offsets_ordered_ = circle_offsets_;
+  std::sort(circle_offsets_ordered_.begin(), circle_offsets_ordered_.end(),
+            [](const cv::Point &a, const cv::Point &b) {
+              const double aa = std::atan2(static_cast<double>(a.y),
+                                           static_cast<double>(a.x));
+              const double bb = std::atan2(static_cast<double>(b.y),
+                                           static_cast<double>(b.x));
+              return aa < bb;
+            });
 }
 
 std::vector<cv::Point> PatchExtractor::buildCirclePerimeterOffsets(int radius) {
@@ -107,7 +116,7 @@ float PatchExtractor::percentileAbs(const cv::Mat &piwe_f32, float pct) {
 }
 
 bool PatchExtractor::perimeterHasPosNeg(const cv::Mat &piwe_f32, int x, int y,
-                                        float sign_eps) const {
+                                        float alpha) const {
   const int H = piwe_f32.rows;
   const int W = piwe_f32.cols;
 
@@ -121,9 +130,9 @@ bool PatchExtractor::perimeterHasPosNeg(const cv::Mat &piwe_f32, int x, int y,
       continue;
     }
     const float v = piwe_f32.at<float>(yy, xx);
-    if (v > sign_eps) {
+    if (v > alpha) {
       pos = 1;
-    } else if (v < -sign_eps) {
+    } else if (v < -alpha) {
       neg = 1;
     }
     if (pos && neg) {
@@ -131,6 +140,62 @@ bool PatchExtractor::perimeterHasPosNeg(const cv::Mat &piwe_f32, int x, int y,
     }
   }
   return false;
+}
+
+int PatchExtractor::perimeterSignChanges(const cv::Mat &piwe_f32, int x, int y,
+                                         float alpha) const {
+  const int H = piwe_f32.rows;
+  const int W = piwe_f32.cols;
+
+  std::vector<int> signs;
+  signs.reserve(circle_offsets_ordered_.size());
+
+  for (const auto &off : circle_offsets_ordered_) {
+    const int xx = x + off.x;
+    const int yy = y + off.y;
+    if (xx < 0 || xx >= W || yy < 0 || yy >= H) {
+      continue;
+    }
+    const float v = piwe_f32.at<float>(yy, xx);
+    if (v > alpha) {
+      signs.push_back(1);
+    } else if (v < -alpha) {
+      signs.push_back(-1);
+    } else {
+      signs.push_back(0);
+    }
+  }
+
+  if (signs.empty()) {
+    return 0;
+  }
+
+  // compress zeros by skipping them in transitions
+  int changes = 0;
+  int last = 0;
+  int first = 0;
+
+  for (size_t i = 0; i < signs.size(); ++i) {
+    const int s = signs[i];
+    if (s == 0) {
+      continue;
+    }
+    if (first == 0) {
+      first = s;
+      last = s;
+      continue;
+    }
+    if (s != last) {
+      changes++;
+      last = s;
+    }
+  }
+
+  if (first != 0 && last != 0 && first != last) {
+    changes++;
+  }
+
+  return changes;
 }
 
 std::vector<cv::Point>
@@ -148,6 +213,16 @@ PatchExtractor::computePatchPoints(const cv::Mat &piwe_f32) const {
   // Dynamic sign_eps from robust scale (percentile of abs)
   const float scale = percentileAbs(piwe_f32, pp_.abs_percentile);
   const float sign_eps = std::max(pp_.sign_eps_min, pp_.sign_eps_ratio * scale);
+  float boundary_alpha = sign_eps;
+  if (pp_.boundary_abs_ratio > 0.0f || pp_.boundary_abs_min > 0.0f) {
+    const float a = (pp_.boundary_abs_ratio > 0.0f)
+                        ? (pp_.boundary_abs_ratio * scale)
+                        : 0.0f;
+    boundary_alpha = std::max(pp_.boundary_abs_min, a);
+    if (boundary_alpha <= 0.0f) {
+      boundary_alpha = sign_eps;
+    }
+  }
 
   std::vector<cv::Point> pts;
   pts.reserve(static_cast<size_t>(H * W / 20));
@@ -162,8 +237,15 @@ PatchExtractor::computePatchPoints(const cv::Mat &piwe_f32) const {
         }
       }
 
-      if (!perimeterHasPosNeg(piwe_f32, x, y, sign_eps)) {
+      if (!perimeterHasPosNeg(piwe_f32, x, y, boundary_alpha)) {
         continue;
+      }
+      if (pp_.min_sign_changes > 0) {
+        const int changes =
+            perimeterSignChanges(piwe_f32, x, y, boundary_alpha);
+        if (changes < pp_.min_sign_changes) {
+          continue;
+        }
       }
 
       pts.emplace_back(x, y); // cv::Point is (x,y)
@@ -234,7 +316,7 @@ PatchExtractor::clusterToBoxes(const std::vector<cv::Point> &patch_points,
   cv::Mat stats;
   cv::Mat centroids;
   const int nlabels = cv::connectedComponentsWithStats(dilated, labels, stats,
-                                                       centroids, 8, CV_32S);
+                                                       centroids, 4, CV_32S);
 
   std::vector<PatchBox> boxes;
   boxes.reserve(static_cast<size_t>(std::max(0, nlabels - 1)));

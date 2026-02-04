@@ -1,0 +1,36 @@
+# calibration_main configuration
+#
+# Windowing (adaptive):
+# - Start each window with length = window_sec.
+# - If collected events < min_events and current window_len < max_window_sec,
+#   the window is extended (in steps of window_sec) up to max_window_sec.
+# - If collected events >= max_events, the window is cut early at that time.
+# - To enforce a fixed window length, set:
+#     window_sec = min_window_sec = max_window_sec (e.g., 0.01)
+#
+h5_path: "/root/datasets/ecal/cvpr26/5x6/5x6.h5"
+out_dir: "/root/datasets/ecal/cvpr26/5x6/cpp_results"
+width: 346
+height: 260
+
+# windowing parameters
+window_sec: 0.1
+min_events: 10000
+max_events: 30000
+min_window_sec: 0.05
+max_window_sec: 0.15
+
+# checkerboard
+board_w: 5
+board_h: 4
+square_size: 0.4
+expected_corners: -1   # auto = board_w * board_h if < 0
+
+# visualization (calibration uses original image size)
+viz_zoom: 1
+
+# patch extraction
+pp_radius: 5
+
+# cm (true=L2/variance, false=IWE)
+use_variance: true

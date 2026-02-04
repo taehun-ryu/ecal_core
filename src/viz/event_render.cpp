@@ -1,8 +1,8 @@
-#include "ecal_core/viz/event_render.hpp"
+#include "ecal/viz/event_render.hpp"
 
 #include <opencv2/core.hpp>
 
-#include "ecal_core/core/simple_event.hpp"
+#include "ecal/core/simple_event.hpp"
 
 namespace ecal::viz {
 

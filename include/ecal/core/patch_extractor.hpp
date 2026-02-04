@@ -21,11 +21,24 @@ struct PatchPointsOptions {
   // optional: require |pIWE(center)| >= center_abs_min (default 0 means "no
   // gate")
   float center_abs_min = 0.0f;
+
+  // Corner-like sign changes around the perimeter.
+  // Edges typically have ~2 sign changes; corners have >= 4.
+  int min_sign_changes = 2;
+
+  // Perimeter "alpha": if |pIWE| < boundary_abs_min, treat as 0 in the
+  // circular boundary vector (ignored for sign changes).
+  // If boundary_abs_ratio > 0, alpha = max(boundary_abs_min,
+  //                                     boundary_abs_ratio * scale(|pIWE|)).
+  // If boundary_abs_ratio <= 0 and boundary_abs_min <= 0, fall back to
+  // sign_eps.
+  float boundary_abs_ratio = 0.0f;
+  float boundary_abs_min = 0.0f;
 };
 
 struct PatchClusterOptions {
   // DBSCAN eps equivalent (pixels). Implemented as dilation radius.
-  int eps = 3;
+  int eps = 0;
 
   // DBSCAN min_samples equivalent (approx).
   // We enforce by dropping CCs whose (dilated) area < min_component_area.
@@ -73,6 +86,7 @@ private:
   PatchClusterOptions cl_;
 
   std::vector<cv::Point> circle_offsets_;
+  std::vector<cv::Point> circle_offsets_ordered_;
 
   static std::vector<cv::Point> buildCirclePerimeterOffsets(int radius);
 
@@ -82,7 +96,9 @@ private:
   static float percentileAbs(const cv::Mat &piwe_f32, float pct);
 
   bool perimeterHasPosNeg(const cv::Mat &piwe_f32, int x, int y,
-                          float sign_eps) const;
+                          float alpha) const;
+  int perimeterSignChanges(const cv::Mat &piwe_f32, int x, int y,
+                           float alpha) const;
 };
 
 } // namespace ecal::core

@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "ecal_core/core/iwe_gaussian.hpp"
-#include "ecal_core/core/simple_event.hpp"
+#include "ecal/core/iwe_gaussian.hpp"
+#include "ecal/core/simple_event.hpp"
 
 namespace ecal::core {
 

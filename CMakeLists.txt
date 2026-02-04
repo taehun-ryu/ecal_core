@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(ecal_core)
+project(ecal)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -8,49 +8,63 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(ament_cmake REQUIRED)
+option(ECAL_STANDALONE "Build ecal without ROS/ament" OFF)
+
+find_package(ament_cmake QUIET)
 
 find_package(OpenCV REQUIRED)
 find_package(Ceres REQUIRED)
+find_package(HDF5 REQUIRED COMPONENTS C)
 
+if (ECAL_STANDALONE OR NOT ament_cmake_FOUND)
+  set(ECAL_USE_AMENT OFF)
+else()
+  set(ECAL_USE_AMENT ON)
+endif()
 # ---------------------------
 # Library
 # ---------------------------
-add_library(ecal_core
+add_library(ecal
   src/core/iwe_gaussian.cpp
   src/core/cm_velocity_2d.cpp
   src/core/cm_tracker_2d.cpp
   src/core/patch_extractor.cpp
+  src/core/corner_init.cpp
+  src/core/corner_refinement.cpp
+  src/core/checkerboard_validity.cpp
+  src/core/checkerboard_calibration.cpp
+  src/viz/calibration_viz.cpp
+  src/viz/calibration_report.cpp
+  src/io/h5_events.cpp
+  src/io/calibration_config.cpp
+  src/io/calibration_output.cpp
   src/viz/event_render.cpp
 )
 
-target_include_directories(ecal_core PUBLIC
+target_include_directories(ecal PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(ecal_core
-  ${OpenCV_LIBS}
-  Ceres::ceres
+target_include_directories(ecal PRIVATE
+  ${HDF5_INCLUDE_DIRS}
 )
 
-# If you use OpenMP in core later, add it explicitly (optional)
-# find_package(OpenMP)
-# if(OpenMP_CXX_FOUND)
-#   target_link_libraries(ecal_core OpenMP::OpenMP_CXX)
-# endif()
+target_link_libraries(ecal
+  ${OpenCV_LIBS}
+  Ceres::ceres
+  ${HDF5_LIBRARIES}
+)
 
 # Export include dirs + deps so downstream packages can link cleanly
-ament_export_include_directories(include)
-ament_export_libraries(ecal_core)
-ament_target_dependencies(ecal_core
-  OpenCV
-  Ceres
-)
-target_link_libraries(ecal_core
-  Ceres::ceres
-  ${OpenCV_LIBS}
-)
+if (ECAL_USE_AMENT)
+  ament_export_include_directories(include)
+  ament_export_libraries(ecal)
+  ament_target_dependencies(ecal
+    OpenCV
+    Ceres
+  )
+endif()
 
 # ---------------------------
 # Install
@@ -59,13 +73,38 @@ install(DIRECTORY include/
   DESTINATION include
 )
 
-install(TARGETS ecal_core
+install(TARGETS ecal
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
 
-ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+if (ECAL_USE_AMENT)
+  ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+endif()
 
-ament_package()
+# ---------------------------
+# Executable
+# ---------------------------
+add_executable(calibration_main
+  src/app/calibration_main.cpp
+)
+
+target_include_directories(calibration_main PRIVATE
+  ${HDF5_INCLUDE_DIRS}
+)
+
+target_link_libraries(calibration_main
+  ecal
+  ${HDF5_LIBRARIES}
+  ${OpenCV_LIBS}
+)
+
+install(TARGETS calibration_main
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+if (ECAL_USE_AMENT)
+  ament_package()
+endif()
