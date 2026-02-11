@@ -1,5 +1,7 @@
 #include <algorithm>
+#include <cctype>
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -40,6 +42,29 @@ inline double usToSec(uint64_t t_us) {
   return static_cast<double>(t_us) * 1e-6;
 }
 
+bool parseBoolEnv(const char *name, bool default_value) {
+  const char *raw = std::getenv(name);
+  if (raw == nullptr || *raw == '\0') {
+    return default_value;
+  }
+  std::string value(raw);
+  std::transform(value.begin(), value.end(), value.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  if (value == "1" || value == "true" || value == "yes" || value == "on") {
+    return true;
+  }
+  if (value == "0" || value == "false" || value == "no" || value == "off") {
+    return false;
+  }
+  return default_value;
+}
+
+bool shouldEnableGui() {
+  const bool has_display = (std::getenv("DISPLAY") != nullptr) ||
+                           (std::getenv("WAYLAND_DISPLAY") != nullptr);
+  return parseBoolEnv("ECAL_ENABLE_GUI", has_display);
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -59,6 +84,11 @@ int main(int argc, char **argv) {
   if (h5.ts_us.empty()) {
     std::cerr << "No events in file\n";
     return 1;
+  }
+
+  bool gui_enabled = shouldEnableGui();
+  if (!gui_enabled) {
+    std::cout << "[viz] GUI disabled (set ECAL_ENABLE_GUI=1 to force enable)\n";
   }
 
   // Tracker config
@@ -281,10 +311,19 @@ int main(int argc, char **argv) {
           init_corners, refined_corners, filtered_corners, static_cast<float>(vx),
           static_cast<float>(vy), window_dt_s, board_rows, board_cols,
           cfg.viz_zoom);
-      ecal::viz::showWindowVis(vis);
+      if (gui_enabled) {
+        try {
+          ecal::viz::showWindowVis(vis);
+          cv::waitKey(1);
+        } catch (const cv::Exception &e) {
+          std::cerr
+              << "[viz] GUI unavailable, disabling window rendering: "
+              << e.what() << "\n";
+          gui_enabled = false;
+        }
+      }
       ecal::io::saveCalibrationOutputs(cfg.out_dir, window_idx, vis);
 
-      cv::waitKey(1);
       window_idx++;
     }
 
@@ -295,7 +334,9 @@ int main(int argc, char **argv) {
 
     window.clear();
   }
-  cv::destroyAllWindows();
+  if (gui_enabled) {
+    cv::destroyAllWindows();
+  }
 
   if (!imgpoints.empty() && !objpoints.empty()) {
     const size_t total_windows = window_idx;
