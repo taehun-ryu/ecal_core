@@ -14,10 +14,9 @@ namespace ecal::core {
 
 EventVelocity2D::EventVelocity2D(const std::vector<SimpleEvent> &events,
                                  int width, int height, int num_threads,
-                                 double event_selected_num,
                                  CmIweOptions iwe_opt)
     : width_(width), height_(height), num_threads_(num_threads),
-      event_selected_num_(event_selected_num), iwe_opt_(iwe_opt) {
+      iwe_opt_(iwe_opt) {
   if (width_ <= 0 || height_ <= 0) {
     throw std::runtime_error("EventVelocity2D: invalid image size");
   }
@@ -26,9 +25,6 @@ EventVelocity2D::EventVelocity2D(const std::vector<SimpleEvent> &events,
   }
   if (num_threads_ <= 0) {
     num_threads_ = 1;
-  }
-  if (event_selected_num_ <= 0.0) {
-    event_selected_num_ = 12000.0;
   }
 
   // Kernel
@@ -39,24 +35,9 @@ EventVelocity2D::EventVelocity2D(const std::vector<SimpleEvent> &events,
     kernel_ = makeGaussianKernel2D(iwe_opt_.sigma, forced_cutoff);
   }
 
-  if (static_cast<double>(events.size()) > event_selected_num_) {
-    compute_ratio_ = static_cast<double>(events.size()) / event_selected_num_;
-  }
+  selected_.reserve(events.size());
 
-  selected_.reserve(static_cast<size_t>(std::min<double>(
-      static_cast<double>(events.size()), event_selected_num_ + 1024.0)));
-
-  int cnt = 0;
-  double next_pick = 0.0;
   for (const auto &e : events) {
-    cnt++;
-    if (compute_ratio_ > 1.01) {
-      if (static_cast<double>(cnt) >= next_pick) {
-        next_pick += compute_ratio_;
-      } else {
-        continue;
-      }
-    }
     selected_.push_back(e);
   }
 

@@ -1,20 +1,24 @@
 #include "ecal/viz/event_render.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 #include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "ecal/core/simple_event.hpp"
 
 namespace ecal::viz {
 
 cv::Mat eventsToImage(const std::vector<ecal::core::TimedEventNs> &events,
-                      int width, int height, int zoom_factor,
+                      int width, int height, float zoom_factor,
                       bool non_max_suppression, int add_value) {
-  if (zoom_factor < 1) {
-    zoom_factor = 1;
+  float z = zoom_factor;
+  if (z <= 0.0f) {
+    z = 1.0f;
   }
 
-  cv::Mat image =
-      cv::Mat::zeros(height * zoom_factor, width * zoom_factor, CV_8UC3);
+  cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
 
   for (const auto &e : events) {
     // Match ROS1-style visualization: ON -> Blue, OFF -> Red
@@ -27,24 +31,17 @@ cv::Mat eventsToImage(const std::vector<ecal::core::TimedEventNs> &events,
       continue;
     }
 
-    u *= zoom_factor;
-    v *= zoom_factor;
-
-    for (int du = 0; du < zoom_factor; ++du) {
-      for (int dv = 0; dv < zoom_factor; ++dv) {
-        auto &pix = image.at<cv::Vec3b>(v + dv, u + du)[channel];
-        if (pix > 255 - add_value) {
-          pix = 255;
-        } else {
-          pix = static_cast<unsigned char>(pix + add_value);
-        }
-      }
+    auto &pix = image.at<cv::Vec3b>(v, u)[channel];
+    if (pix > 255 - add_value) {
+      pix = 255;
+    } else {
+      pix = static_cast<unsigned char>(pix + add_value);
     }
   }
 
   if (non_max_suppression) {
-    for (int u = 0; u < width * zoom_factor; ++u) {
-      for (int v = 0; v < height * zoom_factor; ++v) {
+    for (int u = 0; u < width; ++u) {
+      for (int v = 0; v < height; ++v) {
         for (int c = 0; c < 3; ++c) {
           if (image.at<cv::Vec3b>(v, u)[c] < 80) {
             image.at<cv::Vec3b>(v, u)[c] = 0;
@@ -54,7 +51,15 @@ cv::Mat eventsToImage(const std::vector<ecal::core::TimedEventNs> &events,
     }
   }
 
-  return image;
+  if (std::abs(z - 1.0f) < 1e-6f) {
+    return image;
+  }
+
+  const int out_w = std::max(1, static_cast<int>(std::lround(width * z)));
+  const int out_h = std::max(1, static_cast<int>(std::lround(height * z)));
+  cv::Mat out;
+  cv::resize(image, out, cv::Size(out_w, out_h), 0, 0, cv::INTER_NEAREST);
+  return out;
 }
 
 } // namespace ecal::viz

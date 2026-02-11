@@ -1,39 +1,60 @@
 # calibration_main configuration
-#
-# Windowing (adaptive):
+
+# input/output
+h5_path: "/home/rvi/datasets/ecal/cvpr26/5x6/5x6.h5"
+out_dir: "results/"
+
+# sensor size
+width: 346
+height: 260
+
+# windowing (adaptive)
 # - Start each window with length = window_sec.
 # - If collected events < min_events and current window_len < max_window_sec,
 #   the window is extended (in steps of window_sec) up to max_window_sec.
 # - If collected events >= max_events, the window is cut early at that time.
 # - To enforce a fixed window length, set:
 #     window_sec = min_window_sec = max_window_sec (e.g., 0.01)
-#
-h5_path: "/root/datasets/ecal/cvpr26/5x6/5x6.h5"
-out_dir: "/root/datasets/ecal/cvpr26/5x6/cpp_results"
-width: 346
-height: 260
-
-# windowing parameters
 window_sec: 0.1
 min_events: 10000
 max_events: 30000
 min_window_sec: 0.05
 max_window_sec: 0.15
 
-# checkerboard
+# initial (checkerboard geometry)
 board_w: 5
 board_h: 4
 square_size: 0.4
 expected_corners: -1   # auto = board_w * board_h if < 0
 
-# visualization (calibration uses original image size)
-viz_zoom: 1
+# CM (contrast maximization)
+# objective on IWE: true=variance, false=L2(RMS)
+use_variance: true
+
+# CM IWE kernel
+cm_iwe.sigma: 1.0              # Gaussian sigma
+cm_iwe.cutoff_factor: 3.0      # radius = sigma * cutoff_factor
+cm_iwe.patch_radius_override: -1  # >=0 overrides kernel radius
+
+# CM tracker
+tracker.num_threads: 4
+tracker.max_iterations: 200
 
 # patch extraction
 pp_radius: 5
 
-# cm (true=L2/variance, false=IWE)
-use_variance: true
+# refinement (corner)
+corner_refine.max_iter: 200
+corner_refine.lr: 0.25
+corner_refine.strip_half_width0: 0.5
+corner_refine.strip_half_width1: 0.5
+
+# refinement (checkerboard validity)
+checkerboard_validity.tor_spacing: 0.25
+checkerboard_validity.tor_orth: 0.2
+
+# visualization (calibration uses original image size)
+viz_zoom: 2.0   # float ok (e.g., 1.5)
 
 # calibration speed/robustness
 # bootstrap:

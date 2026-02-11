@@ -349,37 +349,40 @@ std::vector<PatchBox> PatchExtractor::extract(const cv::Mat &piwe_f32) const {
 
 void PatchExtractor::drawPatchPoints(cv::Mat &bgr_u8,
                                      const std::vector<cv::Point> &pts,
-                                     int zoom_factor, const cv::Scalar &color,
+                                     float zoom_factor, const cv::Scalar &color,
                                      int radius, int thickness) {
   if (bgr_u8.empty()) {
     return;
   }
-  if (zoom_factor <= 0) {
-    zoom_factor = 1;
+  float z = zoom_factor;
+  if (z <= 0.0f) {
+    z = 1.0f;
   }
 
   for (const auto &p : pts) {
-    const cv::Point c(p.x * zoom_factor, p.y * zoom_factor);
+    const cv::Point c(static_cast<int>(std::lround(p.x * z)),
+                      static_cast<int>(std::lround(p.y * z)));
     cv::circle(bgr_u8, c, radius, color, thickness, cv::LINE_AA);
   }
 }
 
 void PatchExtractor::drawPatchBoxes(cv::Mat &bgr_u8,
                                     const std::vector<PatchBox> &boxes,
-                                    int zoom_factor, const cv::Scalar &color,
+                                    float zoom_factor, const cv::Scalar &color,
                                     int thickness) {
   if (bgr_u8.empty()) {
     return;
   }
-  if (zoom_factor <= 0) {
-    zoom_factor = 1;
+  float z = zoom_factor;
+  if (z <= 0.0f) {
+    z = 1.0f;
   }
 
   for (const auto &b : boxes) {
-    const int x0 = b.x0 * zoom_factor;
-    const int y0 = b.y0 * zoom_factor;
-    const int x1 = b.x1 * zoom_factor;
-    const int y1 = b.y1 * zoom_factor;
+    const int x0 = static_cast<int>(std::lround(b.x0 * z));
+    const int y0 = static_cast<int>(std::lround(b.y0 * z));
+    const int x1 = static_cast<int>(std::lround(b.x1 * z));
+    const int y1 = static_cast<int>(std::lround(b.y1 * z));
 
     cv::rectangle(bgr_u8, cv::Point(x0, y0), cv::Point(x1 - 1, y1 - 1), color,
                   thickness, cv::LINE_AA);

@@ -71,13 +71,13 @@ public:
   // Visualization helpers
   static void drawPatchPoints(cv::Mat &bgr_u8,
                               const std::vector<cv::Point> &pts,
-                              int zoom_factor = 1,
+                              float zoom_factor = 1.0f,
                               const cv::Scalar &color = cv::Scalar(0, 0, 255),
                               int radius = 1, int thickness = -1);
 
   static void drawPatchBoxes(cv::Mat &bgr_u8,
                              const std::vector<PatchBox> &boxes,
-                             int zoom_factor = 1,
+                             float zoom_factor = 1.0f,
                              const cv::Scalar &color = cv::Scalar(0, 255, 0),
                              int thickness = 2);
 

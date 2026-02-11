@@ -525,13 +525,16 @@ std::vector<cv::Point3f> buildObjectPoints(int rows, int cols,
 cv::Mat drawCheckerboardRowSnake(const cv::Mat &gray_or_bgr,
                                  const std::vector<cv::Point2f> &ordered,
                                  int rows, int cols, int radius,
-                                 bool draw_points) {
+                                 bool draw_points, int thickness) {
   cv::Mat vis;
   if (gray_or_bgr.channels() == 1) {
     cv::cvtColor(gray_or_bgr, vis, cv::COLOR_GRAY2BGR);
   } else {
     vis = gray_or_bgr.clone();
   }
+
+  const int line_thickness = std::max(1, thickness);
+  const int point_radius = std::max(1, radius);
 
   const cv::Scalar colors[] = {cv::Scalar(0, 0, 255),   cv::Scalar(0, 165, 255),
                                cv::Scalar(0, 255, 255), cv::Scalar(0, 255, 0),
@@ -550,11 +553,12 @@ cv::Mat drawCheckerboardRowSnake(const cv::Mat &gray_or_bgr,
       row_pts.emplace_back(static_cast<int>(std::round(p.x)),
                            static_cast<int>(std::round(p.y)));
     }
-    cv::polylines(vis, row_pts, false, color, 1, cv::LINE_AA);
+    cv::polylines(vis, row_pts, false, color, line_thickness, cv::LINE_AA);
     if (draw_points) {
       for (const auto &p : row_pts) {
-        cv::circle(vis, p, radius, color, -1, cv::LINE_AA);
-        cv::circle(vis, p, radius, cv::Scalar(0, 0, 0), 1, cv::LINE_AA);
+        cv::circle(vis, p, point_radius, color, -1, cv::LINE_AA);
+        cv::circle(vis, p, point_radius, cv::Scalar(0, 0, 0), line_thickness,
+                   cv::LINE_AA);
       }
     }
     if (r < rows - 1) {
@@ -562,7 +566,7 @@ cv::Mat drawCheckerboardRowSnake(const cv::Mat &gray_or_bgr,
       const cv::Point p_next =
           cv::Point(static_cast<int>(std::round(grid[idx(r + 1, 0)].x)),
                     static_cast<int>(std::round(grid[idx(r + 1, 0)].y)));
-      cv::line(vis, p_end, p_next, color, 1, cv::LINE_AA);
+      cv::line(vis, p_end, p_next, color, line_thickness, cv::LINE_AA);
     }
   }
   return vis;

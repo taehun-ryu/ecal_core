@@ -66,16 +66,24 @@ WindowVis buildWindowVis(const std::vector<ecal::core::TimedEventNs> &events,
                          const std::vector<cv::Point2f> &refined_corners,
                          const std::vector<cv::Point2f> &filtered_corners,
                          float vx, float vy, double window_dt_s,
-                         int board_rows, int board_cols, int zoom_factor) {
+                         int board_rows, int board_cols, float zoom_factor) {
   WindowVis out;
 
-  out.raw_vis = ecal::viz::eventsToImage(events, width, height, 2, true, 50);
+  const float vis_zoom = (zoom_factor > 0.0f) ? zoom_factor : 1.0f;
+  const auto scaledSize = [&](int base) {
+    return std::max(1, static_cast<int>(std::lround(base * vis_zoom)));
+  };
+  const auto scaledRadius = [&](float base) {
+    return std::max(1, static_cast<int>(std::lround(base * vis_zoom)));
+  };
+
+  out.raw_vis =
+      ecal::viz::eventsToImage(events, width, height, vis_zoom, true, 50);
 
   if (!out.raw_vis.empty()) {
-    const int raw_zoom = 2;
     const cv::Point center(out.raw_vis.cols / 2, out.raw_vis.rows / 2);
-    const double dx = static_cast<double>(vx) * window_dt_s * raw_zoom;
-    const double dy = static_cast<double>(vy) * window_dt_s * raw_zoom;
+    const double dx = static_cast<double>(vx) * window_dt_s * vis_zoom;
+    const double dy = static_cast<double>(vy) * window_dt_s * vis_zoom;
     const double norm = std::sqrt(dx * dx + dy * dy);
     if (std::isfinite(norm) && norm > 1e-6) {
       const cv::Point tip(static_cast<int>(std::round(center.x + dx)),
@@ -98,40 +106,67 @@ WindowVis buildWindowVis(const std::vector<ecal::core::TimedEventNs> &events,
   const cv::Mat piwe_u8 = normalizeSignedToU8(piwe);
 
   cv::resize(iwe_u8, out.iwe_vis,
-             cv::Size(width * zoom_factor, height * zoom_factor), 0, 0,
+             cv::Size(scaledSize(iwe_u8.cols), scaledSize(iwe_u8.rows)), 0, 0,
              cv::INTER_NEAREST);
   cv::resize(piwe_u8, out.piwe_vis,
-             cv::Size(width * zoom_factor, height * zoom_factor), 0, 0,
+             cv::Size(scaledSize(piwe_u8.cols), scaledSize(piwe_u8.rows)), 0, 0,
              cv::INTER_NEAREST);
 
   out.iwe_vis = toBgr(out.iwe_vis);
   out.piwe_vis = toBgr(out.piwe_vis);
 
   ecal::core::PatchExtractor::drawPatchPoints(
-      out.piwe_vis, patch_points, zoom_factor, cv::Scalar(0, 255, 0), 1, -1);
-  ecal::core::PatchExtractor::drawPatchBoxes(out.piwe_vis, boxes, zoom_factor,
+      out.piwe_vis, patch_points, vis_zoom, cv::Scalar(0, 255, 0), 1, -1);
+  ecal::core::PatchExtractor::drawPatchBoxes(out.piwe_vis, boxes, vis_zoom,
                                              cv::Scalar(255, 0, 255), 2);
 
+  const int corner_outline = std::max(1, static_cast<int>(std::lround(vis_zoom)));
+  const int init_radius = scaledRadius(3.0f);
+  const int refined_radius = scaledRadius(4.0f);
+  const int filtered_radius = scaledRadius(4.0f);
+
   for (const auto &c : init_corners) {
-    const cv::Point cc(static_cast<int>(std::round(c.x * zoom_factor)),
-                       static_cast<int>(std::round(c.y * zoom_factor)));
-    cv::circle(out.iwe_vis, cc, 3, cv::Scalar(0, 255, 255), -1, cv::LINE_AA);
+    const cv::Point cc(static_cast<int>(std::lround(c.x * vis_zoom)),
+                       static_cast<int>(std::lround(c.y * vis_zoom)));
+    cv::circle(out.iwe_vis, cc, init_radius, cv::Scalar(0, 255, 255), -1,
+               cv::LINE_AA);
   }
   for (const auto &c : refined_corners) {
-    const cv::Point cc(static_cast<int>(std::round(c.x * zoom_factor)),
-                       static_cast<int>(std::round(c.y * zoom_factor)));
-    cv::circle(out.iwe_vis, cc, 4, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
+    const cv::Point cc(static_cast<int>(std::lround(c.x * vis_zoom)),
+                       static_cast<int>(std::lround(c.y * vis_zoom)));
+    cv::circle(out.iwe_vis, cc, refined_radius, cv::Scalar(0, 0, 255), -1,
+               cv::LINE_AA);
   }
   for (const auto &c : filtered_corners) {
-    const cv::Point cc(static_cast<int>(std::round(c.x * zoom_factor)),
-                       static_cast<int>(std::round(c.y * zoom_factor)));
-    cv::circle(out.iwe_vis, cc, 4, cv::Scalar(255, 255, 0), -1, cv::LINE_AA);
-    cv::circle(out.iwe_vis, cc, 4, cv::Scalar(0, 0, 0), 1, cv::LINE_AA);
+    const cv::Point cc(static_cast<int>(std::lround(c.x * vis_zoom)),
+                       static_cast<int>(std::lround(c.y * vis_zoom)));
+    cv::circle(out.iwe_vis, cc, filtered_radius, cv::Scalar(255, 255, 0), -1,
+               cv::LINE_AA);
+    cv::circle(out.iwe_vis, cc, filtered_radius, cv::Scalar(0, 0, 0),
+               corner_outline, cv::LINE_AA);
   }
 
   if (!filtered_corners.empty() && board_rows > 0 && board_cols > 0) {
-    out.corners_vis = ecal::core::drawCheckerboardRowSnake(
-        iwe_u8, filtered_corners, board_rows, board_cols, 3, true);
+    const int corner_radius = scaledRadius(3.0f);
+    const int line_thickness = std::max(1, static_cast<int>(std::lround(vis_zoom)));
+    if (std::abs(vis_zoom - 1.0f) > 1e-6f) {
+      cv::Mat corners_base;
+      cv::resize(iwe_u8, corners_base,
+                 cv::Size(scaledSize(iwe_u8.cols), scaledSize(iwe_u8.rows)), 0,
+                 0, cv::INTER_NEAREST);
+      std::vector<cv::Point2f> scaled;
+      scaled.reserve(filtered_corners.size());
+      for (const auto &p : filtered_corners) {
+        scaled.emplace_back(p.x * vis_zoom, p.y * vis_zoom);
+      }
+      out.corners_vis = ecal::core::drawCheckerboardRowSnake(
+          corners_base, scaled, board_rows, board_cols, corner_radius, true,
+          line_thickness);
+    } else {
+      out.corners_vis = ecal::core::drawCheckerboardRowSnake(
+          iwe_u8, filtered_corners, board_rows, board_cols, corner_radius, true,
+          line_thickness);
+    }
   }
 
   return out;
@@ -141,11 +176,11 @@ void showWindowVis(const WindowVis &vis) {
   if (!vis.raw_vis.empty()) {
     cv::imshow("cm_window_events", vis.raw_vis);
   }
-  if (!vis.iwe_vis.empty()) {
-    cv::imshow("iwe_u8", vis.iwe_vis);
-  }
   if (!vis.piwe_vis.empty()) {
     cv::imshow("piwe_u8", vis.piwe_vis);
+  }
+  if (!vis.iwe_vis.empty()) {
+    cv::imshow("iwe_u8", vis.iwe_vis);
   }
   if (!vis.corners_vis.empty()) {
     cv::imshow("corners_matched", vis.corners_vis);

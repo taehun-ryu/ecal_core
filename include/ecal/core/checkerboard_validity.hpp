@@ -26,6 +26,6 @@ std::vector<cv::Point3f> buildObjectPoints(int rows, int cols,
 cv::Mat drawCheckerboardRowSnake(const cv::Mat &gray_or_bgr,
                                  const std::vector<cv::Point2f> &ordered,
                                  int rows, int cols, int radius = 3,
-                                 bool draw_points = true);
+                                 bool draw_points = true, int thickness = 1);
 
 } // namespace ecal::core

@@ -28,6 +28,7 @@
 *.app
 
 # user setting
+results/
 .vscode
 *.*~
 *.bak

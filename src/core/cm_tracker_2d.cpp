@@ -15,17 +15,14 @@
 namespace ecal::core {
 
 CmTracker2D::CmTracker2D(int width, int height, int num_threads,
-                         double event_selected_num, CmIweOptions iwe_opt)
+                         CmIweOptions iwe_opt)
     : width_(width), height_(height), num_threads_(num_threads),
-      event_selected_num_(event_selected_num), iwe_opt_(iwe_opt) {
+      iwe_opt_(iwe_opt) {
   if (width_ <= 0 || height_ <= 0) {
     throw std::runtime_error("CmTracker2D: invalid image size");
   }
   if (num_threads_ <= 0) {
     num_threads_ = 1;
-  }
-  if (event_selected_num_ <= 0.0) {
-    event_selected_num_ = 12000.0;
   }
 
   kernel_ = makeGaussianKernel2D(iwe_opt_.sigma, iwe_opt_.cutoff_factor);
@@ -126,7 +123,7 @@ CmTracker2D::track(const std::vector<SimpleEvent> &events_frame,
   auto *cost =
       new ceres::NumericDiffCostFunction<EventVelocity2D, ceres::CENTRAL, 1, 2>(
           new EventVelocity2D(events_frame, width_, height_, num_threads_,
-                              event_selected_num_, iwe_opt_));
+                              iwe_opt_));
 
   problem.AddResidualBlock(cost, nullptr, v);
 

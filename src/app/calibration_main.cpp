@@ -63,18 +63,19 @@ int main(int argc, char **argv) {
 
   // Tracker config
   ecal::core::CmIweOptions iwe_opt;
-  iwe_opt.sigma = 1.0f;
-  iwe_opt.cutoff_factor = 3.0f;
-  iwe_opt.patch_radius_override = -1;
+  iwe_opt.sigma = cfg.cm_iwe_sigma;
+  iwe_opt.cutoff_factor = cfg.cm_iwe_cutoff_factor;
+  iwe_opt.patch_radius_override = cfg.cm_iwe_patch_radius_override;
   iwe_opt.use_variance = cfg.use_variance; // L2 or IWE
 
   ecal::core::CmTracker2DOptions track_opt;
-  track_opt.max_iterations = 200;
+  track_opt.max_iterations = cfg.tracker_max_iterations;
   track_opt.verbose = false;
   track_opt.compute_final_iwe = true;
   track_opt.final_use_full_events = true;
 
-  ecal::core::CmTracker2D tracker(cfg.width, cfg.height, 4, 12000.0, iwe_opt);
+  ecal::core::CmTracker2D tracker(cfg.width, cfg.height,
+                                  cfg.tracker_num_threads, iwe_opt);
 
   const uint64_t t0_us = h5.ts_us.front();
   const uint64_t window_len_us =
@@ -188,13 +189,13 @@ int main(int argc, char **argv) {
 
       ecal::core::CornerRefineOptions ref_opt;
       ref_opt.enable = true;
-      ref_opt.lr = 0.25f;
-      ref_opt.max_iter = 200;
+      ref_opt.lr = cfg.corner_refine_lr;
+      ref_opt.max_iter = cfg.corner_refine_max_iter;
       ref_opt.gtol = 1e-6f;
       ref_opt.armijo_c = 1e-4f;
       ref_opt.min_step = 1e-6f;
-      ref_opt.strip_half_width0 = 0.5f;
-      ref_opt.strip_half_width1 = 0.5f;
+      ref_opt.strip_half_width0 = cfg.corner_refine_strip_half_width0;
+      ref_opt.strip_half_width1 = cfg.corner_refine_strip_half_width1;
 
       float global_seed_thr = corner_opt.seed_thr;
       float global_tau_thr = corner_opt.tau;
@@ -251,8 +252,9 @@ int main(int argc, char **argv) {
           auto ord = ecal::core::orderCheckerboardCorners(cand, board_rows,
                                                           board_cols);
           if (ord.success && static_cast<int>(ord.ordered.size()) == expected) {
-            if (ecal::core::isCheckerboardValid(ord.ordered, board_rows,
-                                                board_cols)) {
+            if (ecal::core::isCheckerboardValid(
+                    ord.ordered, board_rows, board_cols,
+                    cfg.checkerboard_tor_spacing, cfg.checkerboard_tor_orth)) {
               filtered_corners = ord.ordered;
               filtered_valid = true;
               imgpoints.push_back(filtered_corners);

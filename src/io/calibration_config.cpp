@@ -80,11 +80,38 @@ bool loadCalibrationConfig(const std::string &path, CalibrationConfig &cfg,
   if (has("square_size"))
     cfg.square_size = std::stof(get("square_size"));
   if (has("viz_zoom"))
-    cfg.viz_zoom = std::stoi(get("viz_zoom"));
+    cfg.viz_zoom = std::stof(get("viz_zoom"));
   if (has("pp_radius"))
     cfg.pp_radius = std::stoi(get("pp_radius"));
   if (has("use_variance"))
     cfg.use_variance = (get("use_variance") == "true");
+  if (has("cm_iwe.sigma"))
+    cfg.cm_iwe_sigma = std::stof(get("cm_iwe.sigma"));
+  if (has("cm_iwe.cutoff_factor"))
+    cfg.cm_iwe_cutoff_factor = std::stof(get("cm_iwe.cutoff_factor"));
+  if (has("cm_iwe.patch_radius_override"))
+    cfg.cm_iwe_patch_radius_override =
+        std::stoi(get("cm_iwe.patch_radius_override"));
+  if (has("tracker.num_threads"))
+    cfg.tracker_num_threads = std::stoi(get("tracker.num_threads"));
+  if (has("tracker.max_iterations"))
+    cfg.tracker_max_iterations = std::stoi(get("tracker.max_iterations"));
+  if (has("checkerboard_validity.tor_spacing"))
+    cfg.checkerboard_tor_spacing =
+        std::stof(get("checkerboard_validity.tor_spacing"));
+  if (has("checkerboard_validity.tor_orth"))
+    cfg.checkerboard_tor_orth =
+        std::stof(get("checkerboard_validity.tor_orth"));
+  if (has("corner_refine.max_iter"))
+    cfg.corner_refine_max_iter = std::stoi(get("corner_refine.max_iter"));
+  if (has("corner_refine.lr"))
+    cfg.corner_refine_lr = std::stof(get("corner_refine.lr"));
+  if (has("corner_refine.strip_half_width0"))
+    cfg.corner_refine_strip_half_width0 =
+        std::stof(get("corner_refine.strip_half_width0"));
+  if (has("corner_refine.strip_half_width1"))
+    cfg.corner_refine_strip_half_width1 =
+        std::stof(get("corner_refine.strip_half_width1"));
   if (has("calib_max_iter"))
     cfg.calib_max_iter = std::stoi(get("calib_max_iter"));
   if (has("calib_fix_k3plus"))

@@ -21,8 +21,7 @@ struct CmIweOptions {
 class EventVelocity2D {
 public:
   EventVelocity2D(const std::vector<SimpleEvent> &events, int width, int height,
-                  int num_threads, double event_selected_num,
-                  CmIweOptions iwe_opt);
+                  int num_threads, CmIweOptions iwe_opt);
 
   bool operator()(const double *const v, double *const res) const;
 
@@ -32,9 +31,6 @@ private:
   int width_ = 0;
   int height_ = 0;
   int num_threads_ = 4;
-
-  double event_selected_num_ = 12000.0;
-  double compute_ratio_ = 1.0;
 
   double t0_ = 0.0;
 

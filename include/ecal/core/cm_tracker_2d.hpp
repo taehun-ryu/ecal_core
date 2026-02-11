@@ -38,8 +38,7 @@ struct CmTracker2DResult {
 
 class CmTracker2D {
 public:
-  CmTracker2D(int width, int height, int num_threads, double event_selected_num,
-              CmIweOptions iwe_opt);
+  CmTracker2D(int width, int height, int num_threads, CmIweOptions iwe_opt);
 
   CmTracker2DResult track(const std::vector<SimpleEvent> &events_frame,
                           const CmTracker2DOptions &opt, double v_init_x,
@@ -55,7 +54,6 @@ private:
   int width_ = 0;
   int height_ = 0;
   int num_threads_ = 1;
-  double event_selected_num_ = 12000.0;
   CmIweOptions iwe_opt_;
   GaussianKernel2D kernel_;
 };

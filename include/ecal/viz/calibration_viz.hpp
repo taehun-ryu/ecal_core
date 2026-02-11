@@ -25,7 +25,8 @@ WindowVis buildWindowVis(const std::vector<ecal::core::TimedEventNs> &events,
                          const std::vector<cv::Point2f> &refined_corners,
                          const std::vector<cv::Point2f> &filtered_corners,
                          float vx, float vy, double window_dt_s,
-                         int board_rows, int board_cols, int zoom_factor = 2);
+                         int board_rows, int board_cols,
+                         float zoom_factor = 2.0f);
 
 void showWindowVis(const WindowVis &vis);
 
