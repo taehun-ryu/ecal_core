@@ -1,4 +1,4 @@
-# calibration_main configuration
+# Local calibration_main configuration
 
 # input/output
 h5_path: "/home/rvi/datasets/ecal/cvpr26/5x6/5x6.h5"
@@ -22,8 +22,10 @@ min_window_sec: 0.05
 max_window_sec: 0.15
 
 # initial (checkerboard geometry)
-board_w: 5
-board_h: 4
+# `board_w` / `board_h` are INNER corner counts (not square counts).
+# Example: a 6x8 checkerboard (squares) should be set as board_h=5, board_w=7.
+board_h: 5
+board_w: 7
 square_size: 0.4
 expected_corners: -1   # auto = board_w * board_h if < 0
 
@@ -54,7 +56,7 @@ checkerboard_validity.tor_spacing: 0.25
 checkerboard_validity.tor_orth: 0.2
 
 # visualization (calibration uses original image size)
-viz_zoom: 2.0   # float ok (e.g., 1.5)
+viz_zoom: 1.5   # float ok
 
 # calibration speed/robustness
 # bootstrap:
